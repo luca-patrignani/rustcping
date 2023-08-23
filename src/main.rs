@@ -1,18 +1,19 @@
 use std::{
-    net::{SocketAddr, TcpStream},
+    net::TcpStream,
     sync::mpsc,
     thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant}, env,
 };
 
 pub mod printer;
 pub mod user_input;
+mod tests;
 
 use printer::{Probe, ProbePrinter, StdoutPrinter};
-use user_input::UserInput;
+use user_input::parse;
 
 fn main() {
-    let user_input = UserInput{socket: SocketAddr::from(([93, 184, 216, 34], 443))}; // example.com port 443
+    let user_input = parse(env::args());
     let socket = user_input.socket;
     let (sx, rx) = mpsc::channel::<Probe>();
     let printer = StdoutPrinter::new(user_input);
