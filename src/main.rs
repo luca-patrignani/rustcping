@@ -5,18 +5,17 @@ use std::{
     time::{Duration, Instant},
 };
 
-struct Probe {
-    elapsed: Duration,
-    err: Option<std::io::Error>,
-}
+pub mod printer;
+
+use printer::{Probe, ProbePrinter};
 
 fn main() {
     let (sx, rx) = mpsc::channel::<Probe>();
+    // let printer = StdoutPrinter::new();
     thread::spawn(move || loop {
         let rcvd = rx.recv();
-        if rcvd.is_ok() {
-            let probe = rcvd.unwrap();
-            println!("{} {}", probe.err.is_some(), probe.elapsed.as_millis());
+        if let Ok(probe) = rcvd {
+            printer::StdoutPrinter::print_probe(probe);
         }
     });
     let addr = SocketAddr::from(([93, 184, 216, 34], 443)); // example.com port 443
