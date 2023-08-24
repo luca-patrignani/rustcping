@@ -18,8 +18,8 @@ pub struct StdoutPrinter {
 impl ProbePrinter for StdoutPrinter {
     fn print_probe(&self, p: Probe) {
         let elapsed = p.elapsed.as_millis();
-        let ip = self.user_input.socket.ip();
-        let port = self.user_input.socket.port();
+        let ip = &self.user_input.url;
+        let port = self.user_input.port;
         println!("Reply from 74.6.231.21 ({ip}) on port {port} TCP_conn=1 time={elapsed} ms")
     }
 }
