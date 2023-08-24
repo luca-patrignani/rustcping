@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{time::Duration, net::IpAddr};
 
 use crate::user_input::UserInput;
 
@@ -12,20 +12,22 @@ pub trait ProbePrinter {
 }
 
 pub struct StdoutPrinter {
-    user_input: UserInput
+    user_input: UserInput,
+    current_ip_addr: IpAddr,
 }
 
 impl ProbePrinter for StdoutPrinter {
     fn print_probe(&self, p: Probe) {
         let elapsed = p.elapsed.as_millis();
-        let ip = &self.user_input.url;
+        let url = &self.user_input.url;
         let port = self.user_input.port;
-        println!("Reply from 74.6.231.21 ({ip}) on port {port} TCP_conn=1 time={elapsed} ms")
+        let ip_addr = &self.current_ip_addr;
+        println!("Reply from {url} ({ip_addr}) on port {port} TCP_conn=1 time={elapsed} ms")
     }
 }
 
 impl StdoutPrinter {
-    pub fn new(user_input: UserInput) -> StdoutPrinter {
-        StdoutPrinter {user_input}
+    pub fn new(user_input: UserInput, ip_addr: IpAddr) -> StdoutPrinter {
+        StdoutPrinter {user_input, current_ip_addr: ip_addr }
     }
 }
