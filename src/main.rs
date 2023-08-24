@@ -8,8 +8,10 @@ use std::{
 pub mod printer;
 pub mod user_input;
 mod tests;
+mod tracker;
 
-use printer::{Probe, ProbePrinter, StdoutPrinter};
+use printer::print_probe;
+use tracker::{Probe, Info};
 use user_input::parse;
 
 fn get_socket(url: &String, port: u16) -> Result<SocketAddr, std::io::Error> {
@@ -22,19 +24,24 @@ fn main() -> Result<(), Box<dyn Error>> {
     let user_input = parse(env::args());
     let socket = get_socket(&user_input.url, user_input.port)?;
     let (sx, rx) = mpsc::channel::<Probe>();
-    let printer = StdoutPrinter::new(user_input, socket.ip());
-    thread::spawn(move || loop {
-        let rcvd = rx.recv();
-        if let Ok(probe) = rcvd {
-            printer.print_probe(probe);
-        }
+    let mut info = Info{user_input, counter: 0, ip_addr: socket.ip() };
+    thread::spawn(move || {
+        loop {
+            if let Ok(probe) = rx.recv() {
+                info.track(&probe);
+                print_probe(&info, &probe);
+            }
+    }
     });
+    let conn_timeout = Duration::from_secs(1);
     loop {
         let start = Instant::now();
-        let conn_res = TcpStream::connect_timeout(&socket, Duration::from_secs(1));
+        let conn_res = TcpStream::connect_timeout(&socket, conn_timeout);
         let elapsed = start.elapsed();
         let err: Option<std::io::Error> = conn_res.err();
+        if elapsed < conn_timeout {
+            thread::sleep(conn_timeout - elapsed)
+        }
         _ = sx.send(Probe { elapsed, err });
-        thread::sleep(Duration::from_secs(1) - elapsed)
     }
 }
