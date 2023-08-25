@@ -30,6 +30,7 @@ mod info {
 
     #[test]
     fn test_counter() -> Result<(), AddrParseError> {
+        let dummy_error = io::Error::new(io::ErrorKind::AddrInUse, "error");
         let mut info = Info{ 
             user_input: UserInput{ url: "example.com".to_owned(), port: 443 }, 
             counter: 0, 
@@ -40,7 +41,7 @@ mod info {
         assert_eq!(info.counter, 1);
         info.track(&Probe{ elapsed: Duration::from_secs(1), err: None });
         assert_eq!(info.counter, 2);
-        info.track(&Probe{ elapsed: Duration::from_secs(1), err: Some(io::Error::new(io::ErrorKind::AddrInUse, "error")) });
+        info.track(&Probe{ elapsed: Duration::from_secs(1), err: Some(dummy_error) });
         assert_eq!(info.counter, 0);
         info.track(&Probe{ elapsed: Duration::from_secs(1), err: None });
         assert_eq!(info.counter, 1);
