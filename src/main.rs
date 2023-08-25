@@ -53,5 +53,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         tcping_handle.thread().unpark();
     }).expect("Error setting Ctrl-C handler");
     _ = tracker_handle.join();
+    // the threads close in this order: ctrlc => tcping => tracker => main
     Ok(())
 }
