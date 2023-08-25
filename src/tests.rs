@@ -22,6 +22,7 @@ mod parse {
     }
 }
 
+#[cfg(test)]
 mod info {
     use std::{net::{AddrParseError, IpAddr}, str::FromStr, time::Duration, io};
 
