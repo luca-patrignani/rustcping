@@ -1,3 +1,5 @@
+use chrono::{Utc, DateTime};
+
 use crate::tracker::{Info, Probe};
 
 pub fn print_probe(info: &Info, probe: &Probe) {
@@ -17,14 +19,16 @@ pub fn print_final_stats(info: &Info) {
     let total_probes = succ_counter + fail_counter;
     // awful workaround for showing two decimal figures.
     let packet_loss_perc = (fail_counter as f64 / total_probes as f64 * 10000.0).trunc() / 100.0;
+    let last_succ_probe = to_string(info.last_succ_probe, "Never succeded".to_owned());
+    let last_fail_probe = to_string(info.last_fail_probe, "Never failed".to_owned());
     println!(
 "
 --- {url} ({ip_addr}) TCPing statistics ---
 {total_probes} probes transmitted on port {port} | {succ_counter} received, {packet_loss_perc}% packet loss
 successful probes:   {succ_counter}
 unsuccessful probes: {fail_counter}
-last successful probe:   2023-08-25 09:42:47
-last unsuccessful probe: 2023-08-25 09:42:46
+last successful probe:   {last_succ_probe}
+last unsuccessful probe: {last_fail_probe}
 total uptime:   3 seconds
 total downtime: 5 seconds
 longest consecutive uptime:   2 seconds from 2023-08-25 09:42:40 to 2023-08-25 09:42:42
@@ -39,11 +43,21 @@ duration (HH:MM:SS): 00:00:08
         )
 }
 
+fn to_string(time: Option<DateTime<Utc>>, default: String) -> String {
+    if time.is_none() {
+        default
+    } else {
+        let mut t = time.unwrap().to_string();
+        t.truncate(19);
+        t
+    }
+}
+
 fn print_probe_success(info: &Info, probe: &Probe) {
     let url = &info.user_input.url;
     let ip_addr = info.ip_addr;
     let port = info.user_input.port;
-    let elapsed = probe.elapsed.as_millis();
+    let elapsed = probe.elapsed.num_milliseconds();
     let counter = info.succ_probes_streak;
     println!("Reply from {url} ({ip_addr}) on port {port} TCP_conn={counter} time={elapsed} ms")
 }
