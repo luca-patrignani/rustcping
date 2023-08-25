@@ -34,7 +34,7 @@ impl Info {
         } else {
             self.succ_probes_streak = 0;
             self.fail_probes_streak += 1;
-            self.succ_probes_counter += 1;
+            self.fail_probes_counter += 1;
         }
     }
 
