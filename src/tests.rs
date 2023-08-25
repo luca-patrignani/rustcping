@@ -40,27 +40,39 @@ mod info {
         );
         assert_eq!(info.succ_probes_streak, 0);
         assert_eq!(info.fail_probes_streak, 0);
+        assert_eq!(info.succ_probes_counter, 0);
+        assert_eq!(info.fail_probes_counter, 0);
 
         info.track(&Probe{ elapsed: Duration::from_secs(1), err: None });
         assert_eq!(info.succ_probes_streak, 1);
         assert_eq!(info.fail_probes_streak, 0);
+        assert_eq!(info.succ_probes_counter, 1);
+        assert_eq!(info.fail_probes_counter, 0);
 
         info.track(&Probe{ elapsed: Duration::from_secs(1), err: None });
         assert_eq!(info.succ_probes_streak, 2);
         assert_eq!(info.fail_probes_streak, 0);
+        assert_eq!(info.succ_probes_counter, 2);
+        assert_eq!(info.fail_probes_counter, 0);
 
         info.track(&Probe{ elapsed: Duration::from_secs(1), err: Some(dummy_error()) });
         assert_eq!(info.succ_probes_streak, 0);
         assert_eq!(info.fail_probes_streak, 1);
+        assert_eq!(info.succ_probes_counter, 2);
+        assert_eq!(info.fail_probes_counter, 1);
 
         info.track(&Probe{ elapsed: Duration::from_secs(1), err: Some(dummy_error()) });
         assert_eq!(info.succ_probes_streak, 0);
         assert_eq!(info.fail_probes_streak, 2);
+        assert_eq!(info.succ_probes_counter, 2);
+        assert_eq!(info.fail_probes_counter, 2);
 
         info.track(&Probe{ elapsed: Duration::from_secs(1), err: None });
         assert_eq!(info.succ_probes_streak, 1);
         assert_eq!(info.fail_probes_streak, 0);
+        assert_eq!(info.succ_probes_counter, 3);
+        assert_eq!(info.fail_probes_counter, 2);
 
-        return Ok(())
+        Ok(())
     }
 }
