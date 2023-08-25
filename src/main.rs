@@ -2,7 +2,7 @@ use std::{
     net::{TcpStream, ToSocketAddrs, SocketAddr},
     sync::mpsc::channel,
     thread,
-    time::{Duration, Instant}, env, error::Error
+    env, error::Error
 };
 
 pub mod printer;
@@ -10,6 +10,7 @@ pub mod user_input;
 mod tests;
 mod tracker;
 
+use chrono::{Duration, Utc};
 use printer::print_probe;
 use tracker::{Probe, Info};
 use user_input::parse;
@@ -35,17 +36,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         print_final_stats(&info)
     });
-    let conn_timeout = Duration::from_secs(1);
+    let conn_timeout = Duration::seconds(1);
     let tcping_handle = thread::spawn(move || {
         while ctrlc_rx.try_recv().is_err() {
-            let start = Instant::now();
-            let conn_res = TcpStream::connect_timeout(&socket, conn_timeout);
-            let elapsed = start.elapsed();
+            let start = Utc::now();
+            let conn_res = TcpStream::connect_timeout(&socket, conn_timeout.to_std().unwrap());
+            let elapsed = Utc::now() - start;
             let err: Option<std::io::Error> = conn_res.err();
             if elapsed < conn_timeout {
-                thread::park_timeout(conn_timeout - elapsed);
+                thread::park_timeout((conn_timeout - elapsed).to_std().unwrap());
             }
-            _ = probe_sx.send(Probe { elapsed, err });
+            _ = probe_sx.send(Probe { elapsed, err, time: start });
         }
     });
     ctrlc::set_handler(move || {
