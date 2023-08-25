@@ -34,35 +34,33 @@ mod info {
 
     #[test]
     fn test_counter() -> Result<(), AddrParseError> {
-        let mut info = Info{ 
-            user_input: UserInput{ url: "example.com".to_owned(), port: 443 }, 
-            succ_probes_counter: 0,
-            fail_probes_counter: 0, 
-            ip_addr: IpAddr::from_str("93.184.216.34")? 
-        };
-        assert_eq!(info.succ_probes_counter, 0);
-        assert_eq!(info.fail_probes_counter, 0);
+        let mut info = Info::new( 
+            UserInput{ url: "example.com".to_owned(), port: 443 }, 
+            IpAddr::from_str("93.184.216.34")? 
+        );
+        assert_eq!(info.succ_probes_streak, 0);
+        assert_eq!(info.fail_probes_streak, 0);
 
         info.track(&Probe{ elapsed: Duration::from_secs(1), err: None });
-        assert_eq!(info.succ_probes_counter, 1);
-        assert_eq!(info.fail_probes_counter, 0);
+        assert_eq!(info.succ_probes_streak, 1);
+        assert_eq!(info.fail_probes_streak, 0);
 
         info.track(&Probe{ elapsed: Duration::from_secs(1), err: None });
-        assert_eq!(info.succ_probes_counter, 2);
-        assert_eq!(info.fail_probes_counter, 0);
+        assert_eq!(info.succ_probes_streak, 2);
+        assert_eq!(info.fail_probes_streak, 0);
 
         info.track(&Probe{ elapsed: Duration::from_secs(1), err: Some(dummy_error()) });
-        assert_eq!(info.succ_probes_counter, 0);
-        assert_eq!(info.fail_probes_counter, 1);
+        assert_eq!(info.succ_probes_streak, 0);
+        assert_eq!(info.fail_probes_streak, 1);
 
         info.track(&Probe{ elapsed: Duration::from_secs(1), err: Some(dummy_error()) });
-        assert_eq!(info.succ_probes_counter, 0);
-        assert_eq!(info.fail_probes_counter, 2);
+        assert_eq!(info.succ_probes_streak, 0);
+        assert_eq!(info.fail_probes_streak, 2);
 
         info.track(&Probe{ elapsed: Duration::from_secs(1), err: None });
-        assert_eq!(info.succ_probes_counter, 1);
-        assert_eq!(info.fail_probes_counter, 0);
-        
+        assert_eq!(info.succ_probes_streak, 1);
+        assert_eq!(info.fail_probes_streak, 0);
+
         return Ok(())
     }
 }
