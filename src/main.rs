@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let user_input = parse(env::args());
     let socket = get_socket(&user_input.url, user_input.port)?;
     let (sx, rx) = mpsc::channel::<Probe>();
-    let mut info = Info{user_input, counter: 0, ip_addr: socket.ip() };
+    let mut info = Info{user_input, succ_probes_counter: 0, fail_probes_counter: 0, ip_addr: socket.ip() };
     thread::spawn(move || {
         loop {
             if let Ok(probe) = rx.recv() {
