@@ -30,16 +30,55 @@ mod info {
 
     use crate::{tracker::{Info, Probe}, user_input::UserInput};
 
+    pub struct ProbeBuilder {
+        probe: Probe
+    }
+    
+    impl ProbeBuilder {
+        pub fn new() -> ProbeBuilder {
+            ProbeBuilder { probe: Probe{
+                time: Utc::now(),
+                elapsed: Duration::seconds(1),
+                err: None,
+                cycle_duration: Duration::seconds(1)
+            } }
+        }
+    
+        pub fn _time(mut self, time: DateTime<Utc>) -> ProbeBuilder {
+            self.probe.time = time;
+            self
+        }
+    
+        pub fn _elapsed(mut self, elapsed: Duration) -> ProbeBuilder {
+            self.probe.elapsed = elapsed;
+            self
+        }
+    
+        pub fn err(mut self, err: Option<std::io::Error>) -> ProbeBuilder {
+            self.probe.err = err;
+            self
+        }
+    
+        pub fn cycle_duration(mut self, cycle_duration: Duration) -> ProbeBuilder {
+            self.probe.cycle_duration = cycle_duration;
+            self
+        }
+    
+        pub fn build(self) -> Probe {
+            self.probe
+        }
+    }
+
     fn dummy_error() -> Error {
         io::Error::new(io::ErrorKind::AddrInUse, "error")
     }
 
-    fn success(time: DateTime<Utc>) -> Probe {
-        Probe{ elapsed: Duration::seconds(1), err: None, time }
+    fn success() -> Probe {
+        ProbeBuilder::new().err(None).build()
     }
 
-    fn failure(time: DateTime<Utc>) -> Probe {
-        Probe{ elapsed: Duration::seconds(1), err: Some(dummy_error()), time }
+    fn failure() -> Probe {
+        ProbeBuilder::new().err(Some(dummy_error())).build()
     }
 
     #[test]
@@ -48,8 +87,8 @@ mod info {
             UserInput{ url: "example.com".to_owned(), port: 443 }, 
             IpAddr::from_str("93.184.216.34")? 
         );
-        let success = &success(Utc::now());
-        let failure = &failure(Utc::now());
+        let success = &success();
+        let failure = &failure();
         
         assert_eq!(info.succ_probes_streak, 0);
         assert_eq!(info.fail_probes_streak, 0);
@@ -101,7 +140,7 @@ mod info {
     #[test]
     fn test_last_succ_and_fail_single_succ() -> Result<(), AddrParseError> {
         let probes = [
-            success(Utc::now())
+            success()
         ];
         let info = create_info_from_probes(&probes)?;  
         assert_eq!(info.last_succ_probe, Some(probes[0].time));
@@ -112,7 +151,7 @@ mod info {
     #[test]
     fn test_last_succ_and_fail_single_fail() -> Result<(), AddrParseError> {
         let probes = [
-            failure(Utc::now())
+            failure()
         ];
         let info = create_info_from_probes(&probes)?;  
         assert_eq!(info.last_succ_probe, None);
@@ -123,9 +162,9 @@ mod info {
     #[test]
     fn test_last_succ_and_fail_mult_succ() -> Result<(), AddrParseError> {
         let probes = [
-            success(Utc::now()),
-            success(Utc::now()),
-            success(Utc::now()),
+            success(),
+            success(),
+            success(),
         ];
         let info = create_info_from_probes(&probes)?;  
         assert_eq!(info.last_succ_probe, Some(probes[2].time));
@@ -136,9 +175,9 @@ mod info {
     #[test]
     fn test_last_succ_and_fail_mult_fail() -> Result<(), AddrParseError> {
         let probes = [
-            failure(Utc::now()),
-            failure(Utc::now()),
-            failure(Utc::now()),
+            failure(),
+            failure(),
+            failure(),
         ];
         let info = create_info_from_probes(&probes)?;  
         assert_eq!(info.last_succ_probe, None);
@@ -149,15 +188,30 @@ mod info {
     #[test]
     fn test_last_succ_and_fail_mixed() -> Result<(), AddrParseError> {
         let probes = [
-            failure(Utc::now()),
-            success(Utc::now()),
-            failure(Utc::now()),
-            success(Utc::now()),
-            failure(Utc::now()),
+            failure(),
+            success(),
+            failure(),
+            success(),
+            failure(),
         ];
         let info = create_info_from_probes(&probes)?;  
         assert_eq!(info.last_succ_probe, Some(probes[3].time));
         assert_eq!(info.last_fail_probe, Some(probes[4].time));
+        Ok(())
+    }
+
+    #[test]
+    fn test_total_uptime_downtime() -> Result<(), AddrParseError> {
+        let probes = [
+            ProbeBuilder::new().cycle_duration(Duration::seconds(2)).build(),
+            ProbeBuilder::new().cycle_duration(Duration::seconds(3)).build(),
+            ProbeBuilder::new().cycle_duration(Duration::seconds(2)).err(Some(dummy_error())).build(),
+            ProbeBuilder::new().cycle_duration(Duration::seconds(5)).build(),
+            ProbeBuilder::new().cycle_duration(Duration::seconds(20)).err(Some(dummy_error())).build(),
+        ];
+        let info = create_info_from_probes(&probes)?;
+        assert_eq!(info.total_uptime, Duration::seconds(10));
+        assert_eq!(info.total_downtime, Duration::seconds(22));
         Ok(())
     }
 
