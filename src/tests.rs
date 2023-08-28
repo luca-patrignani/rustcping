@@ -24,46 +24,55 @@ mod parse {
 
 #[cfg(test)]
 mod info {
-    use std::{net::{AddrParseError, IpAddr}, str::FromStr, io::{self, Error}};
+    use std::{
+        io::{self, Error},
+        net::{AddrParseError, IpAddr},
+        str::FromStr,
+    };
 
-    use chrono::{Duration, Utc, DateTime};
+    use chrono::{DateTime, Duration, Utc};
 
-    use crate::{tracker::{Info, Probe}, user_input::UserInput};
+    use crate::{
+        tracker::{Info, Probe},
+        user_input::UserInput,
+    };
 
     pub struct ProbeBuilder {
-        probe: Probe
+        probe: Probe,
     }
-    
+
     impl ProbeBuilder {
         pub fn new() -> ProbeBuilder {
-            ProbeBuilder { probe: Probe{
-                time: Utc::now(),
-                elapsed: Duration::seconds(1),
-                err: None,
-                cycle_duration: Duration::seconds(1)
-            } }
+            ProbeBuilder {
+                probe: Probe {
+                    time: Utc::now(),
+                    elapsed: Duration::seconds(1),
+                    err: None,
+                    cycle_duration: Duration::seconds(1),
+                },
+            }
         }
-    
+
         pub fn _time(mut self, time: DateTime<Utc>) -> ProbeBuilder {
             self.probe.time = time;
             self
         }
-    
+
         pub fn elapsed(mut self, elapsed: Duration) -> ProbeBuilder {
             self.probe.elapsed = elapsed;
             self
         }
-    
+
         pub fn err(mut self, err: std::io::Error) -> ProbeBuilder {
             self.probe.err = Some(err);
             self
         }
-    
+
         pub fn cycle_duration(mut self, cycle_duration: Duration) -> ProbeBuilder {
             self.probe.cycle_duration = cycle_duration;
             self
         }
-    
+
         pub fn build(self) -> Probe {
             self.probe
         }
@@ -83,13 +92,16 @@ mod info {
 
     #[test]
     fn test_counter() -> Result<(), AddrParseError> {
-        let mut info = Info::new( 
-            UserInput{ url: "example.com".to_owned(), port: 443 }, 
-            IpAddr::from_str("93.184.216.34")? 
+        let mut info = Info::new(
+            UserInput {
+                url: "example.com".to_owned(),
+                port: 443,
+            },
+            IpAddr::from_str("93.184.216.34")?,
         );
         let success = &success();
         let failure = &failure();
-        
+
         assert_eq!(info.succ_probes_streak, 0);
         assert_eq!(info.fail_probes_streak, 0);
         assert_eq!(info.succ_probes_counter, 0);
@@ -129,9 +141,12 @@ mod info {
     }
 
     fn create_info_from_probes(probes: &[Probe]) -> Result<Info, AddrParseError> {
-        let mut info = Info::new( 
-            UserInput{ url: "example.com".to_owned(), port: 443 }, 
-            IpAddr::from_str("93.184.216.34")?
+        let mut info = Info::new(
+            UserInput {
+                url: "example.com".to_owned(),
+                port: 443,
+            },
+            IpAddr::from_str("93.184.216.34")?,
         );
         probes.iter().for_each(|probe| info.track(probe));
         Ok(info)
@@ -139,10 +154,8 @@ mod info {
 
     #[test]
     fn test_last_succ_and_fail_single_succ() -> Result<(), AddrParseError> {
-        let probes = [
-            success()
-        ];
-        let info = create_info_from_probes(&probes)?;  
+        let probes = [success()];
+        let info = create_info_from_probes(&probes)?;
         assert_eq!(info.last_succ_probe, Some(probes[0].time));
         assert_eq!(info.last_fail_probe, None);
         Ok(())
@@ -150,10 +163,8 @@ mod info {
 
     #[test]
     fn test_last_succ_and_fail_single_fail() -> Result<(), AddrParseError> {
-        let probes = [
-            failure()
-        ];
-        let info = create_info_from_probes(&probes)?;  
+        let probes = [failure()];
+        let info = create_info_from_probes(&probes)?;
         assert_eq!(info.last_succ_probe, None);
         assert_eq!(info.last_fail_probe, Some(probes[0].time));
         Ok(())
@@ -161,12 +172,8 @@ mod info {
 
     #[test]
     fn test_last_succ_and_fail_mult_succ() -> Result<(), AddrParseError> {
-        let probes = [
-            success(),
-            success(),
-            success(),
-        ];
-        let info = create_info_from_probes(&probes)?;  
+        let probes = [success(), success(), success()];
+        let info = create_info_from_probes(&probes)?;
         assert_eq!(info.last_succ_probe, Some(probes[2].time));
         assert_eq!(info.last_fail_probe, None);
         Ok(())
@@ -174,12 +181,8 @@ mod info {
 
     #[test]
     fn test_last_succ_and_fail_mult_fail() -> Result<(), AddrParseError> {
-        let probes = [
-            failure(),
-            failure(),
-            failure(),
-        ];
-        let info = create_info_from_probes(&probes)?;  
+        let probes = [failure(), failure(), failure()];
+        let info = create_info_from_probes(&probes)?;
         assert_eq!(info.last_succ_probe, None);
         assert_eq!(info.last_fail_probe, Some(probes[2].time));
         Ok(())
@@ -187,14 +190,8 @@ mod info {
 
     #[test]
     fn test_last_succ_and_fail_mixed() -> Result<(), AddrParseError> {
-        let probes = [
-            failure(),
-            success(),
-            failure(),
-            success(),
-            failure(),
-        ];
-        let info = create_info_from_probes(&probes)?;  
+        let probes = [failure(), success(), failure(), success(), failure()];
+        let info = create_info_from_probes(&probes)?;
         assert_eq!(info.last_succ_probe, Some(probes[3].time));
         assert_eq!(info.last_fail_probe, Some(probes[4].time));
         Ok(())
@@ -203,11 +200,23 @@ mod info {
     #[test]
     fn test_total_uptime_downtime() -> Result<(), AddrParseError> {
         let probes = [
-            ProbeBuilder::new().cycle_duration(Duration::seconds(2)).build(),
-            ProbeBuilder::new().cycle_duration(Duration::seconds(3)).build(),
-            ProbeBuilder::new().cycle_duration(Duration::seconds(2)).err(dummy_error()).build(),
-            ProbeBuilder::new().cycle_duration(Duration::seconds(5)).build(),
-            ProbeBuilder::new().cycle_duration(Duration::seconds(20)).err(dummy_error()).build(),
+            ProbeBuilder::new()
+                .cycle_duration(Duration::seconds(2))
+                .build(),
+            ProbeBuilder::new()
+                .cycle_duration(Duration::seconds(3))
+                .build(),
+            ProbeBuilder::new()
+                .cycle_duration(Duration::seconds(2))
+                .err(dummy_error())
+                .build(),
+            ProbeBuilder::new()
+                .cycle_duration(Duration::seconds(5))
+                .build(),
+            ProbeBuilder::new()
+                .cycle_duration(Duration::seconds(20))
+                .err(dummy_error())
+                .build(),
         ];
         let info = create_info_from_probes(&probes)?;
         assert_eq!(info.total_uptime, Duration::seconds(10));
@@ -220,7 +229,10 @@ mod info {
         let probes = [
             ProbeBuilder::new().elapsed(Duration::seconds(3)).build(),
             ProbeBuilder::new().elapsed(Duration::seconds(1)).build(),
-            ProbeBuilder::new().elapsed(Duration::seconds(20)).err(dummy_error()).build(),
+            ProbeBuilder::new()
+                .elapsed(Duration::seconds(20))
+                .err(dummy_error())
+                .build(),
             ProbeBuilder::new().elapsed(Duration::seconds(2)).build(),
         ];
         let info = create_info_from_probes(&probes)?;
@@ -229,5 +241,4 @@ mod info {
         assert_eq!(info.sum_rtt, Duration::seconds(6));
         Ok(())
     }
-
 }

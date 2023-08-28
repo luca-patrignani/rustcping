@@ -1,4 +1,4 @@
-use chrono::{Utc, DateTime};
+use chrono::{DateTime, Utc};
 
 use crate::tracker::{Info, Probe};
 
@@ -39,10 +39,9 @@ total downtime: {total_downtime} seconds"
         let max = info.max_rtt.num_microseconds().unwrap_or_default() as f32 / 1000.0;
         let avg = info.sum_rtt.num_milliseconds() as f32 / succ_counter as f32;
         println!("rtt min/avg/max: {:.2}/{:.2}/{:.2} ms", min, max, avg);
-
     }
     println!(
-"
+        "
 --------------------------------------
 TCPing started at: 2023-08-25 09:42:40
 TCPing ended at:   2023-08-25 09:42:48

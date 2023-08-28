@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use chrono::{Utc, Duration, DateTime};
+use chrono::{DateTime, Duration, Utc};
 
 use crate::user_input::UserInput;
 
@@ -8,7 +8,7 @@ pub struct Probe {
     pub time: DateTime<Utc>,
     pub elapsed: Duration,
     pub err: Option<std::io::Error>,
-    pub cycle_duration: Duration
+    pub cycle_duration: Duration,
 }
 
 pub struct Info {
@@ -24,13 +24,15 @@ pub struct Info {
     pub total_downtime: Duration,
     pub min_rtt: Duration,
     pub max_rtt: Duration,
-    pub sum_rtt: Duration
+    pub sum_rtt: Duration,
 }
 
 impl Info {
     pub fn new(user_input: UserInput, ip_addr: IpAddr) -> Info {
-        Info{user_input, ip_addr, 
-            succ_probes_streak: 0, 
+        Info {
+            user_input,
+            ip_addr,
+            succ_probes_streak: 0,
             fail_probes_streak: 0,
             succ_probes_counter: 0,
             fail_probes_counter: 0,
@@ -40,7 +42,7 @@ impl Info {
             total_downtime: Duration::zero(),
             min_rtt: Duration::max_value(),
             max_rtt: Duration::min_value(),
-            sum_rtt: Duration::zero()
+            sum_rtt: Duration::zero(),
         }
     }
 
@@ -62,5 +64,4 @@ impl Info {
             self.total_downtime = self.total_downtime + probe.cycle_duration;
         }
     }
-
 }
