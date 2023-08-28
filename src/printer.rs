@@ -59,7 +59,7 @@ fn print_probe_success(info: &Info, probe: &Probe) {
     let url = &info.user_input.url;
     let ip_addr = info.ip_addr;
     let port = info.user_input.port;
-    let elapsed = probe.elapsed.num_milliseconds();
+    let elapsed = probe.elapsed().num_milliseconds();
     let counter = info.succ_probes_streak;
     println!("Reply from {url} ({ip_addr}) on port {port} TCP_conn={counter} time={elapsed} ms")
 }

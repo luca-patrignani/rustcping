@@ -37,25 +37,25 @@ mod info {
     impl ProbeBuilder {
         pub fn new() -> ProbeBuilder {
             ProbeBuilder { probe: Probe{
-                time: Utc::now(),
-                elapsed: Duration::seconds(1),
+                start_time: Utc::now(),
+                end_time: Utc::now(),
                 err: None,
                 cycle_duration: Duration::seconds(1)
             } }
         }
     
-        pub fn _time(mut self, time: DateTime<Utc>) -> ProbeBuilder {
-            self.probe.time = time;
+        pub fn start_time(mut self, time: DateTime<Utc>) -> ProbeBuilder {
+            self.probe.start_time = time;
             self
         }
-    
-        pub fn _elapsed(mut self, elapsed: Duration) -> ProbeBuilder {
-            self.probe.elapsed = elapsed;
+
+        pub fn end_time(mut self, time: DateTime<Utc>) -> ProbeBuilder {
+            self.probe.end_time = time;
             self
         }
-    
-        pub fn err(mut self, err: Option<std::io::Error>) -> ProbeBuilder {
-            self.probe.err = err;
+     
+        pub fn err(mut self, err: std::io::Error) -> ProbeBuilder {
+            self.probe.err = Some(err);
             self
         }
     
@@ -74,11 +74,11 @@ mod info {
     }
 
     fn success() -> Probe {
-        ProbeBuilder::new().err(None).build()
+        ProbeBuilder::new().build()
     }
 
     fn failure() -> Probe {
-        ProbeBuilder::new().err(Some(dummy_error())).build()
+        ProbeBuilder::new().err(dummy_error()).build()
     }
 
     #[test]
@@ -143,7 +143,7 @@ mod info {
             success()
         ];
         let info = create_info_from_probes(&probes)?;  
-        assert_eq!(info.last_succ_probe, Some(probes[0].time));
+        assert_eq!(info.last_succ_probe, Some(probes[0].start_time));
         assert_eq!(info.last_fail_probe, None);
         Ok(())
     }
@@ -155,7 +155,7 @@ mod info {
         ];
         let info = create_info_from_probes(&probes)?;  
         assert_eq!(info.last_succ_probe, None);
-        assert_eq!(info.last_fail_probe, Some(probes[0].time));
+        assert_eq!(info.last_fail_probe, Some(probes[0].start_time));
         Ok(())
     }
 
@@ -167,7 +167,7 @@ mod info {
             success(),
         ];
         let info = create_info_from_probes(&probes)?;  
-        assert_eq!(info.last_succ_probe, Some(probes[2].time));
+        assert_eq!(info.last_succ_probe, Some(probes[2].start_time));
         assert_eq!(info.last_fail_probe, None);
         Ok(())
     }
@@ -181,7 +181,7 @@ mod info {
         ];
         let info = create_info_from_probes(&probes)?;  
         assert_eq!(info.last_succ_probe, None);
-        assert_eq!(info.last_fail_probe, Some(probes[2].time));
+        assert_eq!(info.last_fail_probe, Some(probes[2].start_time));
         Ok(())
     }
 
@@ -195,8 +195,8 @@ mod info {
             failure(),
         ];
         let info = create_info_from_probes(&probes)?;  
-        assert_eq!(info.last_succ_probe, Some(probes[3].time));
-        assert_eq!(info.last_fail_probe, Some(probes[4].time));
+        assert_eq!(info.last_succ_probe, Some(probes[3].start_time));
+        assert_eq!(info.last_fail_probe, Some(probes[4].start_time));
         Ok(())
     }
 
@@ -205,13 +205,30 @@ mod info {
         let probes = [
             ProbeBuilder::new().cycle_duration(Duration::seconds(2)).build(),
             ProbeBuilder::new().cycle_duration(Duration::seconds(3)).build(),
-            ProbeBuilder::new().cycle_duration(Duration::seconds(2)).err(Some(dummy_error())).build(),
+            ProbeBuilder::new().cycle_duration(Duration::seconds(2)).err(dummy_error()).build(),
             ProbeBuilder::new().cycle_duration(Duration::seconds(5)).build(),
-            ProbeBuilder::new().cycle_duration(Duration::seconds(20)).err(Some(dummy_error())).build(),
+            ProbeBuilder::new().cycle_duration(Duration::seconds(20)).err(dummy_error()).build(),
         ];
         let info = create_info_from_probes(&probes)?;
         assert_eq!(info.total_uptime, Duration::seconds(10));
         assert_eq!(info.total_downtime, Duration::seconds(22));
+        Ok(())
+    }
+
+    #[test]
+    fn test_cons_longest_uptime() -> Result<(), AddrParseError> {
+        let probes = [
+            ProbeBuilder::new().start_time(Utc::now()).build(),
+            ProbeBuilder::new().build(),
+            ProbeBuilder::new().end_time(Utc::now()).build(),
+            ProbeBuilder::new().err(dummy_error()).build()
+        ];
+        let info = create_info_from_probes(&probes)?;
+        assert!(info.longest_cons_uptime.is_some());
+        if let Some(longest_cons_uptime) = info.longest_cons_uptime {
+            assert_eq!(longest_cons_uptime.0, probes[0].start_time);
+            assert_eq!(longest_cons_uptime.1, probes[2].end_time);
+        }
         Ok(())
     }
 

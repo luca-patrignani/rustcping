@@ -41,12 +41,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         while ctrlc_rx.try_recv().is_err() {
             let start = Utc::now();
             let conn_res = TcpStream::connect_timeout(&socket, conn_timeout.to_std().unwrap());
-            let elapsed = Utc::now() - start;
+            let end = Utc::now();
+            let elapsed = end - start;
             let err: Option<std::io::Error> = conn_res.err();
             if elapsed < conn_timeout {
                 thread::park_timeout((conn_timeout - elapsed).to_std().unwrap());
             }
-            _ = probe_sx.send(Probe { elapsed, err, time: start, cycle_duration: conn_timeout });
+            _ = probe_sx.send(Probe { err, start_time: start, end_time: end, cycle_duration: conn_timeout });
         }
     });
     ctrlc::set_handler(move || {

@@ -5,10 +5,16 @@ use chrono::{Utc, Duration, DateTime};
 use crate::user_input::UserInput;
 
 pub struct Probe {
-    pub time: DateTime<Utc>,
-    pub elapsed: Duration,
+    pub start_time: DateTime<Utc>,
+    pub end_time: DateTime<Utc>,
     pub err: Option<std::io::Error>,
     pub cycle_duration: Duration
+}
+
+impl Probe {
+    pub fn elapsed(&self) -> Duration {
+        self.end_time - self.start_time
+    }
 }
 
 pub struct Info {
@@ -21,7 +27,9 @@ pub struct Info {
     pub last_succ_probe: Option<DateTime<Utc>>,
     pub last_fail_probe: Option<DateTime<Utc>>,
     pub total_uptime: Duration,
-    pub total_downtime: Duration
+    pub total_downtime: Duration,
+    pub longest_cons_uptime: Option<(DateTime<Utc>, DateTime<Utc>)>,
+    pub longest_cons_downtime: Option<(DateTime<Utc>, DateTime<Utc>)>
 }
 
 impl Info {
@@ -34,7 +42,9 @@ impl Info {
             last_succ_probe: None,
             last_fail_probe: None,
             total_uptime: Duration::zero(),
-            total_downtime: Duration::zero()
+            total_downtime: Duration::zero(),
+            longest_cons_uptime: None,
+            longest_cons_downtime: None
         }
     }
 
@@ -43,13 +53,13 @@ impl Info {
             self.succ_probes_streak += 1;
             self.fail_probes_streak = 0;
             self.succ_probes_counter += 1;
-            self.last_succ_probe = Some(probe.time);
+            self.last_succ_probe = Some(probe.start_time);
             self.total_uptime = self.total_uptime + probe.cycle_duration;
         } else {
             self.succ_probes_streak = 0;
             self.fail_probes_streak += 1;
             self.fail_probes_counter += 1;
-            self.last_fail_probe = Some(probe.time);
+            self.last_fail_probe = Some(probe.start_time);
             self.total_downtime = self.total_downtime + probe.cycle_duration;
         }
     }
