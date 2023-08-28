@@ -32,27 +32,31 @@ unsuccessful probes: {fail_counter}
 last successful probe:   {last_succ_probe}
 last unsuccessful probe: {last_fail_probe}
 total uptime:   {total_uptime} seconds
-total downtime: {total_downtime} seconds
-longest consecutive uptime:   2 seconds from 2023-08-25 09:42:40 to 2023-08-25 09:42:42
-longest consecutive downtime: 5 seconds from 2023-08-25 09:42:42 to 2023-08-25 09:42:47
-retried to resolve hostname 0 times
-rtt min/avg/max: 131.306/132.387/133.411 ms
+total downtime: {total_downtime} seconds"
+    );
+    if succ_counter > 0 {
+        let min = info.min_rtt.num_microseconds().unwrap_or_default() as f32 / 1000.0;
+        let max = info.max_rtt.num_microseconds().unwrap_or_default() as f32 / 1000.0;
+        let avg = info.sum_rtt.num_milliseconds() as f32 / succ_counter as f32;
+        println!("rtt min/avg/max: {:.2}/{:.2}/{:.2} ms", min, max, avg);
+
+    }
+    println!(
+"
 --------------------------------------
 TCPing started at: 2023-08-25 09:42:40
 TCPing ended at:   2023-08-25 09:42:48
 duration (HH:MM:SS): 00:00:08
 "
-        )
+    );
 }
 
 fn to_string(time: Option<DateTime<Utc>>, default: String) -> String {
-    if time.is_none() {
-        default
-    } else {
-        let mut t = time.unwrap().to_string();
+    time.map_or(default, |tt| {
+        let mut t = tt.to_string();
         t.truncate(19);
         t
-    }
+    })
 }
 
 fn print_probe_success(info: &Info, probe: &Probe) {

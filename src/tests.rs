@@ -49,13 +49,13 @@ mod info {
             self
         }
     
-        pub fn _elapsed(mut self, elapsed: Duration) -> ProbeBuilder {
+        pub fn elapsed(mut self, elapsed: Duration) -> ProbeBuilder {
             self.probe.elapsed = elapsed;
             self
         }
     
-        pub fn err(mut self, err: Option<std::io::Error>) -> ProbeBuilder {
-            self.probe.err = err;
+        pub fn err(mut self, err: std::io::Error) -> ProbeBuilder {
+            self.probe.err = Some(err);
             self
         }
     
@@ -74,11 +74,11 @@ mod info {
     }
 
     fn success() -> Probe {
-        ProbeBuilder::new().err(None).build()
+        ProbeBuilder::new().build()
     }
 
     fn failure() -> Probe {
-        ProbeBuilder::new().err(Some(dummy_error())).build()
+        ProbeBuilder::new().err(dummy_error()).build()
     }
 
     #[test]
@@ -205,13 +205,28 @@ mod info {
         let probes = [
             ProbeBuilder::new().cycle_duration(Duration::seconds(2)).build(),
             ProbeBuilder::new().cycle_duration(Duration::seconds(3)).build(),
-            ProbeBuilder::new().cycle_duration(Duration::seconds(2)).err(Some(dummy_error())).build(),
+            ProbeBuilder::new().cycle_duration(Duration::seconds(2)).err(dummy_error()).build(),
             ProbeBuilder::new().cycle_duration(Duration::seconds(5)).build(),
-            ProbeBuilder::new().cycle_duration(Duration::seconds(20)).err(Some(dummy_error())).build(),
+            ProbeBuilder::new().cycle_duration(Duration::seconds(20)).err(dummy_error()).build(),
         ];
         let info = create_info_from_probes(&probes)?;
         assert_eq!(info.total_uptime, Duration::seconds(10));
         assert_eq!(info.total_downtime, Duration::seconds(22));
+        Ok(())
+    }
+
+    #[test]
+    fn test_min_max_sum() -> Result<(), AddrParseError> {
+        let probes = [
+            ProbeBuilder::new().elapsed(Duration::seconds(3)).build(),
+            ProbeBuilder::new().elapsed(Duration::seconds(1)).build(),
+            ProbeBuilder::new().elapsed(Duration::seconds(20)).err(dummy_error()).build(),
+            ProbeBuilder::new().elapsed(Duration::seconds(2)).build(),
+        ];
+        let info = create_info_from_probes(&probes)?;
+        assert_eq!(info.min_rtt, Duration::seconds(1));
+        assert_eq!(info.max_rtt, Duration::seconds(3));
+        assert_eq!(info.sum_rtt, Duration::seconds(6));
         Ok(())
     }
 

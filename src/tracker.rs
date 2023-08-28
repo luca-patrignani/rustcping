@@ -21,7 +21,10 @@ pub struct Info {
     pub last_succ_probe: Option<DateTime<Utc>>,
     pub last_fail_probe: Option<DateTime<Utc>>,
     pub total_uptime: Duration,
-    pub total_downtime: Duration
+    pub total_downtime: Duration,
+    pub min_rtt: Duration,
+    pub max_rtt: Duration,
+    pub sum_rtt: Duration
 }
 
 impl Info {
@@ -34,7 +37,10 @@ impl Info {
             last_succ_probe: None,
             last_fail_probe: None,
             total_uptime: Duration::zero(),
-            total_downtime: Duration::zero()
+            total_downtime: Duration::zero(),
+            min_rtt: Duration::max_value(),
+            max_rtt: Duration::min_value(),
+            sum_rtt: Duration::zero()
         }
     }
 
@@ -45,6 +51,9 @@ impl Info {
             self.succ_probes_counter += 1;
             self.last_succ_probe = Some(probe.time);
             self.total_uptime = self.total_uptime + probe.cycle_duration;
+            self.min_rtt = Duration::min(self.min_rtt, probe.elapsed);
+            self.max_rtt = Duration::max(self.max_rtt, probe.elapsed);
+            self.sum_rtt = self.sum_rtt + probe.elapsed;
         } else {
             self.succ_probes_streak = 0;
             self.fail_probes_streak += 1;
