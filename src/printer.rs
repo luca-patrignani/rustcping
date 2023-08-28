@@ -21,6 +21,8 @@ pub fn print_final_stats(info: &Info) {
     let packet_loss_perc = (fail_counter as f64 / total_probes as f64 * 10000.0).trunc() / 100.0;
     let last_succ_probe = to_string(info.last_succ_probe, "Never succeded".to_owned());
     let last_fail_probe = to_string(info.last_fail_probe, "Never failed".to_owned());
+    let total_uptime = info.total_uptime.num_seconds();
+    let total_downtime = info.total_downtime.num_seconds();
     println!(
 "
 --- {url} ({ip_addr}) TCPing statistics ---
@@ -29,8 +31,8 @@ successful probes:   {succ_counter}
 unsuccessful probes: {fail_counter}
 last successful probe:   {last_succ_probe}
 last unsuccessful probe: {last_fail_probe}
-total uptime:   3 seconds
-total downtime: 5 seconds
+total uptime:   {total_uptime} seconds
+total downtime: {total_downtime} seconds
 longest consecutive uptime:   2 seconds from 2023-08-25 09:42:40 to 2023-08-25 09:42:42
 longest consecutive downtime: 5 seconds from 2023-08-25 09:42:42 to 2023-08-25 09:42:47
 retried to resolve hostname 0 times

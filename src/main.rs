@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             if elapsed < conn_timeout {
                 thread::park_timeout((conn_timeout - elapsed).to_std().unwrap());
             }
-            _ = probe_sx.send(Probe { elapsed, err, time: start });
+            _ = probe_sx.send(Probe { elapsed, err, time: start, cycle_duration: conn_timeout });
         }
     });
     ctrlc::set_handler(move || {
