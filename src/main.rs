@@ -1,18 +1,19 @@
 use std::{
-    net::{TcpStream, ToSocketAddrs, SocketAddr},
+    env,
+    error::Error,
+    net::{SocketAddr, TcpStream, ToSocketAddrs},
     sync::mpsc::channel,
     thread,
-    env, error::Error
 };
 
 pub mod printer;
-pub mod user_input;
 mod tests;
 mod tracker;
+pub mod user_input;
 
 use chrono::{Duration, Utc};
 use printer::print_probe;
-use tracker::{Probe, Info};
+use tracker::{Info, Probe};
 use user_input::parse;
 
 use crate::printer::print_final_stats;
@@ -20,7 +21,7 @@ use crate::printer::print_final_stats;
 fn get_socket(url: &String, port: u16) -> Result<SocketAddr, std::io::Error> {
     format!("{url}:{port}")
         .to_socket_addrs()
-        .map(|v| {v.as_ref()[0]})
+        .map(|v| v.as_ref()[0])
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -46,13 +47,19 @@ fn main() -> Result<(), Box<dyn Error>> {
             if elapsed < conn_timeout {
                 thread::park_timeout((conn_timeout - elapsed).to_std().unwrap());
             }
-            _ = probe_sx.send(Probe { elapsed, err, time: start, cycle_duration: conn_timeout });
+            _ = probe_sx.send(Probe {
+                elapsed,
+                err,
+                time: start,
+                cycle_duration: conn_timeout,
+            });
         }
     });
     ctrlc::set_handler(move || {
         _ = ctrlc_sx.send(());
         tcping_handle.thread().unpark();
-    }).expect("Error setting Ctrl-C handler");
+    })
+    .expect("Error setting Ctrl-C handler");
     _ = tracker_handle.join();
     // the threads close in this order: ctrlc => tcping => tracker => main
     Ok(())
