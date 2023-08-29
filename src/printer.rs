@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::Local;
 
 use crate::tracker::{Info, Probe};
 
@@ -18,12 +18,32 @@ pub fn print_final_stats(info: &Info) {
     let fail_counter = info.fail_probes_counter;
     let total_probes = succ_counter + fail_counter;
     let packet_loss_perc = format!("{:.2}", fail_counter as f64 / total_probes as f64 * 100.0);
-    let last_succ_probe = to_string(info.last_succ_probe, "Never succeded".to_owned());
-    let last_fail_probe = to_string(info.last_fail_probe, "Never failed".to_owned());
+    let last_succ_probe = info
+        .last_succ_probe
+        .map(|t| t.with_timezone(&Local))
+        .map_or("Never succeded".to_owned(), |t| {
+            format!("{}", t.format("%Y-%m-%d %H:%M:%S"))
+        });
+    let last_fail_probe = info
+        .last_fail_probe
+        .map(|t| t.with_timezone(&Local))
+        .map_or("Never failed".to_owned(), |t| {
+            format!("{}", t.format("%Y-%m-%d %H:%M:%S"))
+        });
     let total_uptime = info.total_uptime.num_seconds();
     let total_downtime = info.total_downtime.num_seconds();
-    let tcping_start = to_string(info.start_time, "".to_owned());
-    let tcping_end = to_string(info.end_time, "".to_owned());
+    let tcping_start = info
+        .start_time
+        .map(|t| t.with_timezone(&Local))
+        .map_or("".to_owned(), |t| {
+            format!("{}", t.format("%Y-%m-%d %H:%M:%S"))
+        });
+    let tcping_end = info
+        .end_time
+        .map(|t| t.with_timezone(&Local))
+        .map_or("".to_owned(), |t| {
+            format!("{}", t.format("%Y-%m-%d %H:%M:%S"))
+        });
     let tcping_duration = info.end_time.unwrap() - info.start_time.unwrap();
     let tcping_hours = (tcping_duration.num_seconds() / 60) / 60;
     let tcping_minutes = (tcping_duration.num_seconds() / 60) % 60;
@@ -46,20 +66,13 @@ total downtime: {total_downtime} seconds"
         println!("rtt min/avg/max: {:.2}/{:.2}/{:.2} ms", min, avg, max);
     }
     println!(
-"
+        "
 --------------------------------------
 TCPing started at: {tcping_start}
 TCPing ended at:   {tcping_end}
 duration (HH:MM:SS): {:0>2}:{:0>2}:{:0>2}",
-        tcping_hours, tcping_minutes, tcping_seconds);
-}
-
-fn to_string(time: Option<DateTime<Utc>>, default: String) -> String {
-    time.map_or(default, |tt| {
-        let mut t = tt.to_string();
-        t.truncate(19);
-        t
-    })
+        tcping_hours, tcping_minutes, tcping_seconds
+    );
 }
 
 fn print_probe_success(info: &Info, probe: &Probe) {
