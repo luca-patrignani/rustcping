@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::Local;
 
 use crate::tracker::{Info, Probe};
 
@@ -17,12 +17,37 @@ pub fn print_final_stats(info: &Info) {
     let succ_counter = info.succ_probes_counter;
     let fail_counter = info.fail_probes_counter;
     let total_probes = succ_counter + fail_counter;
-    // awful workaround for showing two decimal figures.
-    let packet_loss_perc = (fail_counter as f64 / total_probes as f64 * 10000.0).trunc() / 100.0;
-    let last_succ_probe = to_string(info.last_succ_probe, "Never succeded".to_owned());
-    let last_fail_probe = to_string(info.last_fail_probe, "Never failed".to_owned());
+    let packet_loss_perc = format!("{:.2}", fail_counter as f64 / total_probes as f64 * 100.0);
+    let last_succ_probe = info
+        .last_succ_probe
+        .map(|t| t.with_timezone(&Local))
+        .map_or("Never succeded".to_owned(), |t| {
+            format!("{}", t.format("%Y-%m-%d %H:%M:%S"))
+        });
+    let last_fail_probe = info
+        .last_fail_probe
+        .map(|t| t.with_timezone(&Local))
+        .map_or("Never failed".to_owned(), |t| {
+            format!("{}", t.format("%Y-%m-%d %H:%M:%S"))
+        });
     let total_uptime = info.total_uptime.num_seconds();
     let total_downtime = info.total_downtime.num_seconds();
+    let tcping_start = info
+        .start_time
+        .map(|t| t.with_timezone(&Local))
+        .map_or("".to_owned(), |t| {
+            format!("{}", t.format("%Y-%m-%d %H:%M:%S"))
+        });
+    let tcping_end = info
+        .end_time
+        .map(|t| t.with_timezone(&Local))
+        .map_or("".to_owned(), |t| {
+            format!("{}", t.format("%Y-%m-%d %H:%M:%S"))
+        });
+    let tcping_duration = info.end_time.unwrap() - info.start_time.unwrap();
+    let tcping_hours = (tcping_duration.num_seconds() / 60) / 60;
+    let tcping_minutes = (tcping_duration.num_seconds() / 60) % 60;
+    let tcping_seconds = tcping_duration.num_seconds() % 60;
     println!(
 "
 --- {url} ({ip_addr}) TCPing statistics ---
@@ -38,24 +63,16 @@ total downtime: {total_downtime} seconds"
         let min = info.min_rtt.num_microseconds().unwrap_or_default() as f32 / 1000.0;
         let max = info.max_rtt.num_microseconds().unwrap_or_default() as f32 / 1000.0;
         let avg = info.sum_rtt.num_milliseconds() as f32 / succ_counter as f32;
-        println!("rtt min/avg/max: {:.2}/{:.2}/{:.2} ms", min, max, avg);
+        println!("rtt min/avg/max: {:.2}/{:.2}/{:.2} ms", min, avg, max);
     }
     println!(
         "
 --------------------------------------
-TCPing started at: 2023-08-25 09:42:40
-TCPing ended at:   2023-08-25 09:42:48
-duration (HH:MM:SS): 00:00:08
-"
+TCPing started at: {tcping_start}
+TCPing ended at:   {tcping_end}
+duration (HH:MM:SS): {:0>2}:{:0>2}:{:0>2}",
+        tcping_hours, tcping_minutes, tcping_seconds
     );
-}
-
-fn to_string(time: Option<DateTime<Utc>>, default: String) -> String {
-    time.map_or(default, |tt| {
-        let mut t = tt.to_string();
-        t.truncate(19);
-        t
-    })
 }
 
 fn print_probe_success(info: &Info, probe: &Probe) {

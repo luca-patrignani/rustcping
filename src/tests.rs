@@ -45,7 +45,7 @@ mod info {
         pub fn new() -> ProbeBuilder {
             ProbeBuilder {
                 probe: Probe {
-                    time: Utc::now(),
+                    start: Utc::now(),
                     elapsed: Duration::seconds(1),
                     err: None,
                     cycle_duration: Duration::seconds(1),
@@ -53,8 +53,8 @@ mod info {
             }
         }
 
-        pub fn _time(mut self, time: DateTime<Utc>) -> ProbeBuilder {
-            self.probe.time = time;
+        pub fn start(mut self, time: DateTime<Utc>) -> ProbeBuilder {
+            self.probe.start = time;
             self
         }
 
@@ -156,7 +156,7 @@ mod info {
     fn test_last_succ_and_fail_single_succ() -> Result<(), AddrParseError> {
         let probes = [success()];
         let info = create_info_from_probes(&probes)?;
-        assert_eq!(info.last_succ_probe, Some(probes[0].time));
+        assert_eq!(info.last_succ_probe, Some(probes[0].start));
         assert_eq!(info.last_fail_probe, None);
         Ok(())
     }
@@ -166,34 +166,72 @@ mod info {
         let probes = [failure()];
         let info = create_info_from_probes(&probes)?;
         assert_eq!(info.last_succ_probe, None);
-        assert_eq!(info.last_fail_probe, Some(probes[0].time));
+        assert_eq!(info.last_fail_probe, Some(probes[0].start));
         Ok(())
     }
 
     #[test]
     fn test_last_succ_and_fail_mult_succ() -> Result<(), AddrParseError> {
-        let probes = [success(), success(), success()];
+        let time = Utc::now();
+        let second = Duration::seconds(1);
+        let probes = [
+            ProbeBuilder::new().start(time + second).build(),
+            ProbeBuilder::new().start(time + second * 2).build(),
+            ProbeBuilder::new().start(time + second * 3).build(),
+        ];
         let info = create_info_from_probes(&probes)?;
-        assert_eq!(info.last_succ_probe, Some(probes[2].time));
+        assert_eq!(info.last_succ_probe, Some(probes[2].start));
         assert_eq!(info.last_fail_probe, None);
         Ok(())
     }
 
     #[test]
     fn test_last_succ_and_fail_mult_fail() -> Result<(), AddrParseError> {
-        let probes = [failure(), failure(), failure()];
+        let time = Utc::now();
+        let second = Duration::seconds(1);
+        let probes = [
+            ProbeBuilder::new()
+                .start(time + second)
+                .err(dummy_error())
+                .build(),
+            ProbeBuilder::new()
+                .start(time + second * 2)
+                .err(dummy_error())
+                .build(),
+            ProbeBuilder::new()
+                .start(time + second * 3)
+                .err(dummy_error())
+                .build(),
+        ];
         let info = create_info_from_probes(&probes)?;
         assert_eq!(info.last_succ_probe, None);
-        assert_eq!(info.last_fail_probe, Some(probes[2].time));
+        assert_eq!(info.last_fail_probe, Some(probes[2].start));
         Ok(())
     }
 
     #[test]
     fn test_last_succ_and_fail_mixed() -> Result<(), AddrParseError> {
-        let probes = [failure(), success(), failure(), success(), failure()];
+        let time = Utc::now();
+        let second = Duration::seconds(1);
+        let probes = [
+            ProbeBuilder::new()
+                .start(time + second)
+                .err(dummy_error())
+                .build(),
+            ProbeBuilder::new().start(time + second * 2).build(),
+            ProbeBuilder::new()
+                .start(time + second * 3)
+                .err(dummy_error())
+                .build(),
+            ProbeBuilder::new().start(time + second * 4).build(),
+            ProbeBuilder::new()
+                .start(time + second * 5)
+                .err(dummy_error())
+                .build(),
+        ];
         let info = create_info_from_probes(&probes)?;
-        assert_eq!(info.last_succ_probe, Some(probes[3].time));
-        assert_eq!(info.last_fail_probe, Some(probes[4].time));
+        assert_eq!(info.last_succ_probe, Some(probes[3].start));
+        assert_eq!(info.last_fail_probe, Some(probes[4].start));
         Ok(())
     }
 
@@ -239,6 +277,26 @@ mod info {
         assert_eq!(info.min_rtt, Duration::seconds(1));
         assert_eq!(info.max_rtt, Duration::seconds(3));
         assert_eq!(info.sum_rtt, Duration::seconds(6));
+        Ok(())
+    }
+
+    #[test]
+    fn test_start_end_time() -> Result<(), AddrParseError> {
+        let time = Utc::now();
+        let second = Duration::seconds(1);
+        let probes = [
+            ProbeBuilder::new().start(time + second).build(),
+            ProbeBuilder::new().start(time + second * 2).build(),
+            ProbeBuilder::new().start(time + second * 3).build(),
+            ProbeBuilder::new()
+                .start(time + second * 4)
+                .start(Utc::now())
+                .elapsed(Duration::seconds(3))
+                .build(),
+        ];
+        let info = create_info_from_probes(&probes)?;
+        assert_eq!(info.start_time.unwrap(), probes[0].start);
+        assert_eq!(info.end_time.unwrap(), probes[3].start + probes[3].elapsed);
         Ok(())
     }
 }
