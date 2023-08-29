@@ -43,7 +43,7 @@ total downtime: {total_downtime} seconds"
         let min = info.min_rtt.num_microseconds().unwrap_or_default() as f32 / 1000.0;
         let max = info.max_rtt.num_microseconds().unwrap_or_default() as f32 / 1000.0;
         let avg = info.sum_rtt.num_milliseconds() as f32 / succ_counter as f32;
-        println!("rtt min/avg/max: {:.2}/{:.2}/{:.2} ms", min, max, avg);
+        println!("rtt min/avg/max: {:.2}/{:.2}/{:.2} ms", min, avg, max);
     }
     println!(
 "
