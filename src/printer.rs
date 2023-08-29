@@ -22,6 +22,12 @@ pub fn print_final_stats(info: &Info) {
     let last_fail_probe = to_string(info.last_fail_probe, "Never failed".to_owned());
     let total_uptime = info.total_uptime.num_seconds();
     let total_downtime = info.total_downtime.num_seconds();
+    let tcping_start = to_string(info.start_time, "".to_owned());
+    let tcping_end = to_string(info.end_time, "".to_owned());
+    let tcping_duration = info.end_time.unwrap() - info.start_time.unwrap();
+    let tcping_hours = (tcping_duration.num_seconds() / 60) / 60;
+    let tcping_minutes = (tcping_duration.num_seconds() / 60) % 60;
+    let tcping_seconds = tcping_duration.num_seconds() % 60;
     println!(
 "
 --- {url} ({ip_addr}) TCPing statistics ---
@@ -40,13 +46,12 @@ total downtime: {total_downtime} seconds"
         println!("rtt min/avg/max: {:.2}/{:.2}/{:.2} ms", min, max, avg);
     }
     println!(
-        "
---------------------------------------
-TCPing started at: 2023-08-25 09:42:40
-TCPing ended at:   2023-08-25 09:42:48
-duration (HH:MM:SS): 00:00:08
 "
-    );
+--------------------------------------
+TCPing started at: {tcping_start}
+TCPing ended at:   {tcping_end}
+duration (HH:MM:SS): {:0>2}:{:0>2}:{:0>2}",
+        tcping_hours, tcping_minutes, tcping_seconds);
 }
 
 fn to_string(time: Option<DateTime<Utc>>, default: String) -> String {

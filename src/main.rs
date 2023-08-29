@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             _ = probe_sx.send(Probe {
                 elapsed,
                 err,
-                time: start,
+                start,
                 cycle_duration: conn_timeout,
             });
         }
