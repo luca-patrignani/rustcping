@@ -27,7 +27,9 @@ mod parse {
     fn test_timeout_as_int() {
         assert_eq!(
             Duration::seconds(3),
-            parse(["EXEC_NAME", "1.2.3.4", "--timeout", "3"]).timeout.unwrap()
+            parse(["EXEC_NAME", "1.2.3.4", "--timeout", "3"])
+                .timeout
+                .unwrap()
         )
     }
 
@@ -35,7 +37,9 @@ mod parse {
     fn test_timeout_as_float() {
         assert_eq!(
             Duration::milliseconds(3230),
-            parse(["EXEC_NAME", "1.2.3.4", "--timeout", "3.23"]).timeout.unwrap()
+            parse(["EXEC_NAME", "1.2.3.4", "--timeout", "3.23"])
+                .timeout
+                .unwrap()
         )
     }
 
