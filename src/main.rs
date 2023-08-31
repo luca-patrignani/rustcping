@@ -2,18 +2,18 @@ use std::{
     env,
     error::Error,
     net::{SocketAddr, ToSocketAddrs},
-    sync::mpsc::{channel, Sender, Receiver},
+    sync::mpsc::{channel, Receiver, Sender},
     thread,
 };
 
+pub mod pinger;
 pub mod printer;
 mod tests;
 mod tracker;
 pub mod user_input;
-pub mod pinger;
 
 use chrono::{Duration, Utc};
-use pinger::{Pinger, PingTimeout, PingWithoutTimeout};
+use pinger::{PingTimeout, PingWithoutTimeout, Pinger};
 use printer::print_probe;
 use tracker::{Info, Probe};
 use user_input::parse;
@@ -24,6 +24,28 @@ fn get_socket(url: &String, port: u16) -> Result<SocketAddr, std::io::Error> {
     format!("{url}:{port}")
         .to_socket_addrs()
         .map(|v| v.as_ref()[0])
+}
+
+fn tcping<P: Pinger + ?Sized>(
+    probe_sx: Sender<Probe>,
+    closer_rx: Receiver<()>,
+    pinger: &P,
+    interval_between_probes: Duration,
+) {
+    while closer_rx.try_recv().is_err() {
+        let start = Utc::now();
+        let err = pinger.ping();
+        let elapsed = Utc::now() - start;
+        if elapsed < interval_between_probes {
+            thread::park_timeout((interval_between_probes - elapsed).to_std().unwrap());
+        }
+        _ = probe_sx.send(Probe {
+            elapsed,
+            err,
+            start,
+            cycle_duration: Utc::now() - start,
+        });
+    }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -56,23 +78,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         Box::new(PingWithoutTimeout { socket })
     };
-    {
-        let probe_sx = probe_sx;
-        while ctrlc_rx.try_recv().is_err() {
-            let start = Utc::now();
-            let err = pinger.ping();
-            let elapsed = Utc::now() - start;
-            if elapsed < interval_between_probes {
-                thread::park_timeout((interval_between_probes - elapsed).to_std().unwrap());
-            }
-            _ = probe_sx.send(Probe {
-                elapsed,
-                err,
-                start,
-                cycle_duration: Utc::now() - start,
-            });
-        }
-    }
+    tcping(probe_sx, ctrlc_rx, pinger.as_ref(), interval_between_probes);
     _ = tracker_handle.join();
     // the threads close in this order: ctrlc => tcping => tracker => main
     Ok(())
