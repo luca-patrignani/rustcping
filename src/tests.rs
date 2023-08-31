@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod parse {
+    use chrono::Duration;
+
     use crate::user_input::parse;
     #[test]
     fn test_port() {
@@ -19,6 +21,36 @@ mod parse {
     #[test]
     fn test_url_as_ip_addr() {
         assert_eq!("74.6.231.21", parse(["EXEC_NAME", "74.6.231.21"]).url)
+    }
+
+    #[test]
+    fn test_timeout_as_int() {
+        assert_eq!(
+            Duration::seconds(3),
+            parse(["EXEC_NAME", "1.2.3.4", "--timeout", "3"]).timeout.unwrap()
+        )
+    }
+
+    #[test]
+    fn test_timeout_as_float() {
+        assert_eq!(
+            Duration::milliseconds(3230),
+            parse(["EXEC_NAME", "1.2.3.4", "--timeout", "3.23"]).timeout.unwrap()
+        )
+    }
+
+    #[test]
+    fn test_zero_timeout() {
+        assert_eq!(
+            None,
+            parse(["EXEC_NAME", "1.2.3.4", "--timeout", "0"]).timeout
+        )
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_negative_timeout() {
+        _ = parse(["EXEC_NAME", "1.2.3.4", "--timeout", "-2.3"])
     }
 }
 
@@ -92,13 +124,7 @@ mod info {
 
     #[test]
     fn test_counter() -> Result<(), AddrParseError> {
-        let mut info = Info::new(
-            UserInput {
-                url: "example.com".to_owned(),
-                port: 443,
-            },
-            IpAddr::from_str("93.184.216.34")?,
-        );
+        let mut info = create_info();
         let success = &success();
         let failure = &failure();
 
@@ -145,11 +171,16 @@ mod info {
             UserInput {
                 url: "example.com".to_owned(),
                 port: 443,
+                timeout: Some(Duration::seconds(1)),
             },
             IpAddr::from_str("93.184.216.34")?,
         );
         probes.iter().for_each(|probe| info.track(probe));
         Ok(info)
+    }
+
+    fn create_info() -> Info {
+        create_info_from_probes(&[]).unwrap()
     }
 
     #[test]
