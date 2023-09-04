@@ -17,7 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Linter
-      run: cargo clippy --all --verbose
+      run: cargo clippy --all --verbose -- -D warnings
     - name: Fmt
       run: cargo fmt --check --verbose
     - name: Build
