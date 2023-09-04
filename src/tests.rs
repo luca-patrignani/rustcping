@@ -56,6 +56,21 @@ mod parse {
     fn test_negative_timeout() {
         _ = parse(["EXEC_NAME", "1.2.3.4", "--timeout", "-2.3"])
     }
+
+    #[test]
+    fn test_probes_count_positive() {
+        assert_eq!(Some(3), parse(["EXEC_NAME", "1.2.3.4", "--count", "3"]).probes_count)
+    }
+
+    #[test]
+    fn test_probes_count_none() {
+        assert_eq!(None, parse(["EXEC_NAME", "1.2.3.4"]).probes_count)
+    }
+
+    #[test]
+    fn test_probes_count_none_zero() {
+        assert_eq!(None, parse(["EXEC_NAME", "1.2.3.4", "--count", "0"]).probes_count)
+    }
 }
 
 #[cfg(test)]
@@ -176,6 +191,8 @@ mod info {
                 url: "example.com".to_owned(),
                 port: 443,
                 timeout: Some(Duration::seconds(1)),
+                probes_count: None,
+                interval_between_probes: Duration::seconds(1)
             },
             IpAddr::from_str("93.184.216.34")?,
         );
@@ -333,5 +350,39 @@ mod info {
         assert_eq!(info.start_time.unwrap(), probes[0].start);
         assert_eq!(info.end_time.unwrap(), probes[3].start + probes[3].elapsed);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tcping {
+    use std::{sync::mpsc::channel, thread};
+
+    use chrono::Duration;
+
+    use crate::{tcping, pinger::Pinger, user_input::UserInputBuilder};
+
+    #[test]
+    fn test_probes_count() {
+        const PROBES_COUNT: u128 = 1000;
+        let (probe_sx, probe_rx) = channel();
+        let (_, closer_rx) = channel();
+        struct MockPinger;
+        impl Pinger for MockPinger {
+            fn ping(&self) -> Option<std::io::Error> {
+                None
+            }
+        }
+        let user_input = UserInputBuilder::new("1.2.3.4".to_owned(), 443)
+            .probes_count(PROBES_COUNT)
+            .interval_between_probes(Duration::zero())
+            .build();
+        tcping(probe_sx, closer_rx, &MockPinger, user_input);
+        thread::spawn(move || {
+            let mut i = 0;
+            while probe_rx.try_recv().is_ok() {
+                i += 1;
+            }
+            assert_eq!(i, PROBES_COUNT);
+        }).join().expect("join failed");
     }
 }
