@@ -2,7 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
   pull_request:
     branches: [ "main" ]
 
@@ -17,9 +17,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Linter
-      run: cargo clippy --tests
+      run: cargo clippy --all --verbose -- -D warnings
     - name: Fmt
-      run: cargo fmt --check
+      run: cargo fmt --check --verbose
     - name: Build
       run: cargo build --verbose
     - name: Run tests
