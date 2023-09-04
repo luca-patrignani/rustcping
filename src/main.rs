@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         print_final_stats(&info)
     });
-    let tcping_th = std::thread::current();
+    let mut tcping_th = std::thread::current();
     ctrlc::set_handler(move || {
         _ = ctrlc_sx.send(());
         tcping_th.unpark();
