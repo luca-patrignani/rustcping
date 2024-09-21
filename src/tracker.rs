@@ -56,16 +56,16 @@ impl Info {
             self.fail_probes_streak = 0;
             self.succ_probes_counter += 1;
             self.last_succ_probe = Some(probe.start);
-            self.total_uptime = self.total_uptime + probe.cycle_duration;
+            self.total_uptime += probe.cycle_duration;
             self.min_rtt = Duration::min(self.min_rtt, probe.elapsed);
             self.max_rtt = Duration::max(self.max_rtt, probe.elapsed);
-            self.sum_rtt = self.sum_rtt + probe.elapsed;
+            self.sum_rtt += probe.elapsed;
         } else {
             self.succ_probes_streak = 0;
             self.fail_probes_streak += 1;
             self.fail_probes_counter += 1;
             self.last_fail_probe = Some(probe.start);
-            self.total_downtime = self.total_downtime + probe.cycle_duration;
+            self.total_downtime += probe.cycle_duration;
         }
         if self.start_time.is_none() {
             self.start_time = Some(probe.start)
